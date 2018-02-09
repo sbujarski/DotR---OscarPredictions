@@ -28,13 +28,12 @@ SpDesc(OscarData)
 
 #Approach 1 - Logistic Regression----
 
-#Function to normalize probabilities to a year of nominations
-NormtoYear <- function(rawprobs){
+ProbNorm <- function(rawprobs){
   normprobs <- rawprobs/sum(rawprobs)
   return(normprobs)
 }
 #test function--works fine
-NormtoYear(c(.1,.2,.4))
+ProbNorm(c(.1,.2,.4))
 
 #creating binary variables of nomination, and win. 
 OscarData <- OscarData %>% mutate(
@@ -81,26 +80,48 @@ rocplot(TestModel)
 
 
 #leave one year out crossvalidation
+L1outPreds <- data.frame(Year=NA,Name=NA, BPWin=NA, Prob=NA)
 
 for(yr in 1997:2016){
   #split data based on leave-one(year)-out
   TrainData <- na.exclude(subset(OscarData, Year!=yr))
   TestData <- na.exclude(subset(OscarData, Year==yr))
   
+  #run model with lasso regularization
   Model <- glmnet(x=as.matrix(TrainData[c("Globes.Drama.N", "Globes.Drama.W", "Globes.Comedy.N", "Globes.Comedy.W",
                      "CCA.N", "CCA.W", "SAG.N", "SAG.W", "BAFTA.N", "BAFTA.W", "PGA.N", "PGA.W", "DGA.N", "DGA.W")]),
-                  y=as.factor(TrainData$BPWin), family="binomial", alpha=1)
+                  y=as.factor(TrainData$BPWin), family="binomial", alpha=0)
   Model
   coef(Model)[,Model$dim[2]]
   
   predictions <- predict(Model, newx=as.matrix(TestData[c("Globes.Drama.N", "Globes.Drama.W", "Globes.Comedy.N", "Globes.Comedy.W",
                                   "CCA.N", "CCA.W", "SAG.N", "SAG.W", "BAFTA.N", "BAFTA.W", "PGA.N", "PGA.W", "DGA.N", "DGA.W")]))
-  predictions[,dim(predictions)[2]]
-    #return(data.frame(Name=TestData$Name, BPWin=TestData$BPWin, Prob=NormtoYear(predict(Model, newdata=TestData, type="response"))))
+  logits <- predictions[,dim(predictions)[2]]
   
   #convert to probabilities
+  odds <- exp(logits)
+  probs <- odds/(1+odds)
+  probsnorm <- ProbNorm(probs)
   
+  #return data from year left out
+  L1outPreds <- rbind(L1outPreds,data.frame(Year=yr,Name=TestData$Name, BPWin=TestData$BPWin, Prob=probsnorm))
 }
+
+#examining predictions
+#seems to be okay
+for(yr in 1997:2016){
+  print(paste("Year: ", yr))
+  print(subset(L1outPreds, Year==yr))
+  print("")
+}
+
+#What percentage would have been called correctly
+call <- c()
+for(yr in 1997:2016){
+  subset(L1outPreds, Year==yr)$call <- ifelse(subset(L1outPreds, Year==yr)$Prob==max(subset(L1outPreds, Year==yr)$Prob),1,0)
+}
+
+
 
 
 
