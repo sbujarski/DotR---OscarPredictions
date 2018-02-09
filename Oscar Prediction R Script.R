@@ -5,11 +5,15 @@
 #REQUIRED PACKAGES
 library(SpPack)
 library(xlsx) #package to import xls files directly
-library(scales) #for percent axis
 library(plyr) #data wrangling
 library(dplyr) #data wrangling 2
 library(tidyr) #data wrangling 3
 library(lubridate) #data manipulation with date
+library(Deducer) #for rocplot 
+library(pscl) # for mcfadden R2 in logistic regression
+library(caret) #for crossvalidation methods
+library(ROCR) #For crossvalidation AUC curve
+library(scales) #for percent axis
 
 #IMPORT DATA
 OscarData <- read.xlsx("Oscar Winner Data.xlsx", sheetName = "BestPicture")
@@ -63,9 +67,20 @@ OscarData <- OscarData %>% mutate(
 SpDesc(OscarData)
 
 
-
-
-
-TestModel <- glm(BPWin ~ Globes.Drama + Globes.Comedy + CCA + SAG + BAFTA + PGA + DGA + WGA.Original + WGA.Adapted,
+#Test logistic model with just other awards noms and wins
+#No cross-validation (for now)
+TestModel <- glm(BPWin ~ Globes.Drama.N + Globes.Drama.W + Globes.Comedy.N + Globes.Comedy.W +
+                   CCA.N + CCA.W + SAG.N + SAG.W + BAFTA.N + BAFTA.W + PGA.N + PGA.W + DGA.N + DGA.W +
+                   WGA.Original.N + WGA.Original.W + WGA.Adapted.N + WGA.Adapted.W,
                  data=OscarData, family=binomial())
 summary(TestModel)
+anova(TestModel, test="Chisq")
+pR2(TestModel)
+rocplot(TestModel)
+
+
+#leave one year out crossvalidation
+for(yr in 1997:2017)
+
+
+
