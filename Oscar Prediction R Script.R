@@ -107,6 +107,8 @@ for(yr in 1997:2016){
   L1outPreds <- rbind(L1outPreds,data.frame(Year=yr,Name=TestData$Name, BPWin=TestData$BPWin, Prob=probsnorm))
 }
 
+L1outPreds <- na.exclude(L1outPreds)
+
 #examining predictions
 #seems to be okay
 for(yr in 1997:2016){
@@ -116,10 +118,20 @@ for(yr in 1997:2016){
 }
 
 #What percentage would have been called correctly
-call <- c()
+calls <- c()
+callsper <- c()
 for(yr in 1997:2016){
-  subset(L1outPreds, Year==yr)$call <- ifelse(subset(L1outPreds, Year==yr)$Prob==max(subset(L1outPreds, Year==yr)$Prob),1,0)
+  #was the movie called that year? 
+  callsnew <-  ifelse(subset(L1outPreds, Year==yr)$Prob==max(subset(L1outPreds, Year==yr)$Prob),1,0)
+  calls <-c(calls, callsnew)
+  
+  #what percent was called
+  callspernew <-  ifelse(subset(L1outPreds, Year==yr)$Prob==max(subset(L1outPreds, Year==yr)$Prob),max(subset(L1outPreds, Year==yr)$Prob),0)
+  callspernew <-c(callspernew, callspernew)
 }
+
+L1outPreds$calls <- calls
+table(L1outPreds$BPWin, L1outPreds$calls)
 
 
 
