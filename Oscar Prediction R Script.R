@@ -23,8 +23,9 @@ SpDesc(OscarData)
 
 #Planning multiple approaches
 #1 logistic regression
-#2 random forest classification
-#3 Bayesian analysis
+#2 MLM logistic model with movies nested in years (other wins are by definition anticorrelated. )
+#3 random forest classification
+#4 Bayesian analysis
 
 #Approach 1 - Logistic Regression----
 
@@ -124,14 +125,15 @@ for(yr in 1997:2016){
   #was the movie called that year? 
   callsnew <-  ifelse(subset(L1outPreds, Year==yr)$Prob==max(subset(L1outPreds, Year==yr)$Prob),1,0)
   calls <-c(calls, callsnew)
-  
-  #what percent was called
-  callspernew <-  ifelse(subset(L1outPreds, Year==yr)$Prob==max(subset(L1outPreds, Year==yr)$Prob),max(subset(L1outPreds, Year==yr)$Prob),0)
-  callspernew <-c(callspernew, callspernew)
+
 }
 
 L1outPreds$calls <- calls
 table(L1outPreds$BPWin, L1outPreds$calls)
+
+SpHist(subset(L1outPreds, BPWin==1)$Prob)
+
+
 
 
 
