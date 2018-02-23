@@ -237,3 +237,92 @@ test.RF <- randomForest(as.factor(BPWin) ~ Globes.Drama + Globes.Comedy +
                         ntree = 5000, data = OscarData)
 print(test.RF) 
 varImpPlot(test.RF)
+
+#Leave 1 out cross-validation
+L1outPreds.RF <- data.frame(Year=NA,Name=NA, BPWin=NA, Prob=NA)
+
+for(yr in 1997:2016){
+  #split data based on leave-one(year)-out
+  TrainData <- na.exclude(subset(OscarData, Year!=yr))
+  TestData <- na.exclude(subset(OscarData, Year==yr))
+  
+  #run model with lasso regularization
+  Model <- randomForest(as.factor(BPWin) ~ Globes.Drama + Globes.Comedy +
+                          CCA + SAG + BAFTA + PGA + DGA +
+                          WGA.Original + WGA.Adapted +
+                          RT.All + RT.Top + AA.Actor + AA.ActorSup + AA.Actress + AA.ActressSup + 
+                          AA.Director + AA.Adapt + AA.Original, na.action=na.exclude, importance = T,
+                        ntree = 5000, data = TrainData)
+  
+  predictions <- predict(Model, TestData, type="prob")[,2]
+  
+  #normalize probabilities to year
+  probsnorm <- ProbNorm(predictions)
+  
+  #return data from year left out
+  L1outPreds.RF <- rbind(L1outPreds.RF,data.frame(Year=yr,Name=TestData$Name, BPWin=TestData$BPWin, Prob=probsnorm))
+}
+
+L1outPreds.RF <- na.exclude(L1outPreds.RF)
+
+#examining predictions
+#seems to be okay
+for(yr in 1997:2016){
+  print(paste("Year: ", yr))
+  print(subset(L1outPreds.RF, Year==yr))
+  print("")
+}
+
+#What percentage would have been called correctly
+calls <- c()
+callsper <- c()
+for(yr in 1997:2016){
+  #was the movie called that year? 
+  callsnew <-  ifelse(subset(L1outPreds.RF, Year==yr)$Prob==max(subset(L1outPreds.RF, Year==yr)$Prob),1,0)
+  calls <-c(calls, callsnew)
+  
+}
+
+L1outPreds.RF$calls <- calls
+table(L1outPreds.RF$BPWin, L1outPreds.RF$calls)
+
+SpHist(subset(L1outPreds.RF, BPWin==1)$Prob)
+
+#Accuracy testing via root mean squared error
+L1outPreds.RF <- left_join(L1outPreds.RF, OscarData)
+#calculating RMSE
+sqrt(sum((L1outPreds.RF$Prob - L1outPreds.RF$BPWin)^2)/sum(!is.na(L1outPreds.RF$BPWin)))
+#0.2727928
+#misses on average by 27%, but that is considering the outcome is binary
+#Pretty similar to the logistic regression with regularization
+
+#What does this predict for 2018
+TrainData <- subset(OscarData, Year!=2017)
+TestData <- subset(OscarData, Year==2017)
+
+Model <- randomForest(as.factor(BPWin) ~ Globes.Drama + Globes.Comedy +
+                        CCA + SAG + BAFTA + PGA + DGA +
+                        WGA.Original + WGA.Adapted +
+                        RT.All + RT.Top + AA.Actor + AA.ActorSup + AA.Actress + AA.ActressSup + 
+                        AA.Director + AA.Adapt + AA.Original, na.action=na.exclude, importance = T,
+                      ntree = 5000, data = TrainData)
+print(Model)
+varImpPlot(Model)
+
+predictions <- predict(Model, TestData, type="prob")[,2]
+
+probsnorm <- ProbNorm(predictions)
+
+data.frame(Year=yr,Name=TestData$Name, BPWin=TestData$BPWin, Prob=probsnorm)
+#   Year                                      Name BPWin         Prob
+# 1 2016                      Call Me by Your Name    NA 0.0036460865
+# 2 2016                              Darkest Hour    NA 0.0000000000
+# 3 2016                                   Dunkirk    NA 0.0007292173
+# 4 2016                                   Get Out    NA 0.0554205153
+# 5 2016                                 Lady Bird    NA 0.1076810890
+# 6 2016                            Phantom Thread    NA 0.0097228974
+# 7 2016                                  The Post    NA 0.0043753038
+# 8 2016                        The Shape of Water    NA 0.6033057851  #shape of water still favorite, but less so. 
+# 9 2016 Three Billboards Outside Ebbing, Missouri    NA 0.2151191055
+
+
