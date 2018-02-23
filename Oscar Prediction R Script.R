@@ -148,7 +148,45 @@ sqrt(sum((L1outPreds$Prob - L1outPreds$BPWin)^2)/sum(!is.na(L1outPreds$BPWin)))
 #misses on average by 30%
 #can I do better than that?
 
-#Approach #2 - Multilevel Logistic models to account for nesting of movies within years
+#What does this predict for 2018
+TrainData <- subset(OscarData, Year!=2017)
+TestData <- subset(OscarData, Year==2017)
+
+Model <- glmnet(x=as.matrix(TrainData[c("Globes.Drama.N", "Globes.Drama.W", "Globes.Comedy.N", "Globes.Comedy.W",
+                                        "CCA.N", "CCA.W", "SAG.N", "SAG.W", "BAFTA.N", "BAFTA.W", "PGA.N", "PGA.W", "DGA.N", "DGA.W", 
+                                        "RT.All",	"RT.Top",	"AA.Actor",	"AA.ActorSup",	"AA.Actress",	"AA.ActressSup",	"AA.Director",
+                                        "AA.Adapt",	"AA.Original")]),
+                y=as.factor(TrainData$BPWin), family="binomial", alpha=0)
+Model
+coef(Model)[,Model$dim[2]]
+
+predictions <- predict(Model, newx=as.matrix(TestData[c("Globes.Drama.N", "Globes.Drama.W", "Globes.Comedy.N", "Globes.Comedy.W",
+                                                        "CCA.N", "CCA.W", "SAG.N", "SAG.W", "BAFTA.N", "BAFTA.W", "PGA.N", "PGA.W", "DGA.N", "DGA.W", 
+                                                        "RT.All",	"RT.Top",	"AA.Actor",	"AA.ActorSup",	"AA.Actress",	"AA.ActressSup",	"AA.Director",
+                                                        "AA.Adapt",	"AA.Original")]))
+logits <- predictions[,dim(predictions)[2]]
+
+#convert to probabilities
+odds <- exp(logits)
+probs <- odds/(1+odds)
+probsnorm <- ProbNorm(probs)
+
+#return data from year left out
+data.frame(Year=yr,Name=TestData$Name, BPWin=TestData$BPWin, Prob=probsnorm)
+#   Year                                      Name BPWin        Prob
+# 1 2016                      Call Me by Your Name    NA 0.003289117
+# 2 2016                              Darkest Hour    NA 0.001800000
+# 3 2016                                   Dunkirk    NA 0.010466688
+# 4 2016                                   Get Out    NA 0.002938352
+# 5 2016                                 Lady Bird    NA 0.035453765
+# 6 2016                            Phantom Thread    NA 0.010451622
+# 7 2016                                  The Post    NA 0.003493502
+# 8 2016                        The Shape of Water    NA 0.790435670  (80% Heavy Favorite)
+# 9 2016 Three Billboards Outside Ebbing, Missouri    NA 0.141671285
+
+
+#Approach #2 ----
+#Multilevel Logistic models to account for nesting of movies within years
 test.glmer <- glmer(BPWin ~ (1 | Year) + Globes.Drama.N + Globes.Drama.W + Globes.Comedy.N + Globes.Comedy.W +
                       CCA.N + CCA.W + SAG.N + SAG.W + BAFTA.N + BAFTA.W + PGA.N + PGA.W + DGA.N + DGA.W +
                       WGA.Original.N + WGA.Original.W + WGA.Adapted.N + WGA.Adapted.W +
