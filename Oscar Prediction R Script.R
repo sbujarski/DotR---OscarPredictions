@@ -161,6 +161,22 @@ Model <- glmnet(x=as.matrix(TrainData[c("Globes.Drama.N", "Globes.Drama.W", "Glo
 Model
 coef(Model)[,Model$dim[2]]
 
+#regularized logistic regression coefficient plots
+RLR.Coef <- data.frame(coef=coef(Model)[,Model$dim[2]])
+RLR.Coef$variable <- row.names(RLR.Coef)
+#remove intercept
+RLR.Coef <- subset(RLR.Coef, variable != "(Intercept)")
+  
+#use ggplot to plot coefficients
+RLR.CoefPlot <- ggplot(data=RLR.Coef, aes(x = coef, y = reorder(variable, coef))) +
+  geom_point(size=3) +
+  scale_x_continuous("Logistic Regression Coefficient") +
+  ggtitle("Regularized Logistic Regression Coefficients") +
+  DotRTheme() +
+  theme(axis.title.y = element_blank())
+ggsave(RLR.CoefPlot, filename="RLR.CoefPlot.png", height=8, width = 8, dpi=300)
+
+
 predictions <- predict(Model, newx=as.matrix(TestData[c("Globes.Drama.N", "Globes.Drama.W", "Globes.Comedy.N", "Globes.Comedy.W",
                                                         "CCA.N", "CCA.W", "SAG.N", "SAG.W", "BAFTA.N", "BAFTA.W", "PGA.N", "PGA.W", "DGA.N", "DGA.W", 
                                                         "RT.All",	"RT.Top",	"AA.Actor",	"AA.ActorSup",	"AA.Actress",	"AA.ActressSup",	"AA.Director",
