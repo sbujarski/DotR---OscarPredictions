@@ -187,15 +187,23 @@ data.frame(Year=yr,Name=TestData$Name, BPWin=TestData$BPWin, Prob=probsnorm)
 
 #Approach #2 ----
 #Multilevel Logistic models to account for nesting of movies within years
-test.glmer <- glmer(BPWin ~ (1 | Year) + Globes.Drama.N + Globes.Drama.W + Globes.Comedy.N + Globes.Comedy.W +
+test.glmer <- glmer(BPWin ~ Globes.Drama.N + Globes.Drama.W + Globes.Comedy.N + Globes.Comedy.W +
                       CCA.N + CCA.W + SAG.N + SAG.W + BAFTA.N + BAFTA.W + PGA.N + PGA.W + DGA.N + DGA.W +
                       WGA.Original.N + WGA.Original.W + WGA.Adapted.N + WGA.Adapted.W +
                       RT.All + RT.Top + AA.Actor + AA.ActorSup + AA.Actress + AA.ActressSup + 
-                      AA.Director + AA.Adapt + AA.Original,
+                      AA.Director + AA.Adapt + AA.Original + (1 | Year),
                       data=OscarData,
                       family=binomial,
                       control = glmerControl(optimizer = "bobyqa"))
 summary(test.glmer)
+#colinearity is a huge issue for this model
+# Warning messages:
+# 1: In vcov.merMod(object, use.hessian = use.hessian) :
+#   variance-covariance matrix computed from finite-difference Hessian is
+# not positive definite or contains NA values: falling back to var-cov estimated from RX
+# 2: In vcov.merMod(object, correlation = correlation, sigm = sig) :
+#   variance-covariance matrix computed from finite-difference Hessian is
+# not positive definite or contains NA values: falling back to var-cov estimated from RX
 
 
 
