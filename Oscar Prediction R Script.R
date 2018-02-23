@@ -5,7 +5,6 @@
 #REQUIRED PACKAGES
 library(SpPack)
 library(xlsx) #package to import xls files directly
-library(plyr) #data wrangling
 library(dplyr) #data wrangling 2
 library(tidyr) #data wrangling 3
 library(lubridate) #data manipulation with date
