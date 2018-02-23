@@ -14,6 +14,7 @@ library(caret) #for crossvalidation methods
 library(ROCR) #For crossvalidation AUC curve
 library(scales) #for percent axis
 library(glmnet) #for glmnet function with lasso and ridge regularization
+library(lme4) # for glmer logistic multilevel modeling
 
 #IMPORT DATA
 OscarData <- read.xlsx("Oscar Winner Data.xlsx", sheetName = "BestPicture")
@@ -22,12 +23,12 @@ SpDesc(OscarData)
 
 #Planning multiple approaches
 #1 logistic regression
-#2 MLM logistic model with movies nested in years (other wins are by definition anticorrelated. )
+#2 MLM logistic model with movies nested in years (other wins are by definition anticorrelated)
 #3 random forest classification
 #4 Bayesian analysis
 
-#Approach 1 - Logistic Regression----
-
+#General Functions----
+#ProbNorm - Function to normalize probabilities to 100% for use within a year
 ProbNorm <- function(rawprobs){
   normprobs <- rawprobs/sum(rawprobs)
   return(normprobs)
@@ -35,6 +36,7 @@ ProbNorm <- function(rawprobs){
 #test function--works fine
 ProbNorm(c(.1,.2,.4))
 
+#Data management----
 #creating binary variables of nomination, and win. 
 OscarData <- OscarData %>% mutate(
   Globes.Drama.N = ifelse(Globes.Drama==1,1,0),
@@ -66,7 +68,9 @@ OscarData <- OscarData %>% mutate(
 
 SpDesc(OscarData)
 table(OscarData$Globes.Drama.N, OscarData$Globes.Drama.W)
+table(OscarData$WGA.Original.N, OscarData$WGA.Original.W)
 
+#Approach #1 - Logistic Modeling with regularization
 #Test logistic model with just other awards noms and wins
 #No cross-validation (for now)
 TestModel <- glm(BPWin ~ Globes.Drama.N + Globes.Drama.W + Globes.Comedy.N + Globes.Comedy.W +
@@ -78,7 +82,7 @@ anova(TestModel, test="Chisq")
 pR2(TestModel)
 rocplot(TestModel)
 
-
+#Now test with regularization via glmnet
 #leave one year out crossvalidation
 L1outPreds <- data.frame(Year=NA,Name=NA, BPWin=NA, Prob=NA)
 
@@ -89,13 +93,17 @@ for(yr in 1997:2016){
   
   #run model with lasso regularization
   Model <- glmnet(x=as.matrix(TrainData[c("Globes.Drama.N", "Globes.Drama.W", "Globes.Comedy.N", "Globes.Comedy.W",
-                     "CCA.N", "CCA.W", "SAG.N", "SAG.W", "BAFTA.N", "BAFTA.W", "PGA.N", "PGA.W", "DGA.N", "DGA.W")]),
+                     "CCA.N", "CCA.W", "SAG.N", "SAG.W", "BAFTA.N", "BAFTA.W", "PGA.N", "PGA.W", "DGA.N", "DGA.W", 
+                     "RT.All",	"RT.Top",	"AA.Actor",	"AA.ActorSup",	"AA.Actress",	"AA.ActressSup",	"AA.Director",
+                     "AA.Adapt",	"AA.Original")]),
                   y=as.factor(TrainData$BPWin), family="binomial", alpha=0)
   Model
   coef(Model)[,Model$dim[2]]
   
   predictions <- predict(Model, newx=as.matrix(TestData[c("Globes.Drama.N", "Globes.Drama.W", "Globes.Comedy.N", "Globes.Comedy.W",
-                                  "CCA.N", "CCA.W", "SAG.N", "SAG.W", "BAFTA.N", "BAFTA.W", "PGA.N", "PGA.W", "DGA.N", "DGA.W")]))
+                                                           "CCA.N", "CCA.W", "SAG.N", "SAG.W", "BAFTA.N", "BAFTA.W", "PGA.N", "PGA.W", "DGA.N", "DGA.W", 
+                                                           "RT.All",	"RT.Top",	"AA.Actor",	"AA.ActorSup",	"AA.Actress",	"AA.ActressSup",	"AA.Director",
+                                                           "AA.Adapt",	"AA.Original")]))
   logits <- predictions[,dim(predictions)[2]]
   
   #convert to probabilities
@@ -132,7 +140,24 @@ table(L1outPreds$BPWin, L1outPreds$calls)
 
 SpHist(subset(L1outPreds, BPWin==1)$Prob)
 
+#Accuracy testing via root mean squared error
+L1outPreds <- left_join(L1outPreds, OscarData)
+#calculating RMSE
+sqrt(sum((L1outPreds$Prob - L1outPreds$BPWin)^2)/sum(!is.na(L1outPreds$BPWin)))
+#0.2992295
+#misses on average by 30%
+#can I do better than that?
 
+#Approach #2 - Multilevel Logistic models to account for nesting of movies within years
+test.glmer <- glmer(BPWin ~ (1 | Year) + Globes.Drama.N + Globes.Drama.W + Globes.Comedy.N + Globes.Comedy.W +
+                      CCA.N + CCA.W + SAG.N + SAG.W + BAFTA.N + BAFTA.W + PGA.N + PGA.W + DGA.N + DGA.W +
+                      WGA.Original.N + WGA.Original.W + WGA.Adapted.N + WGA.Adapted.W +
+                      RT.All + RT.Top + AA.Actor + AA.ActorSup + AA.Actress + AA.ActressSup + 
+                      AA.Director + AA.Adapt + AA.Original,
+                      data=OscarData,
+                      family=binomial,
+                      control = glmerControl(optimizer = "bobyqa"))
+summary(test.glmer)
 
 
 
