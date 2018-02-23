@@ -203,7 +203,7 @@ summary(test.glmer)
 # not positive definite or contains NA values: falling back to var-cov estimated from RX
 # 2: In vcov.merMod(object, correlation = correlation, sigm = sig) :
 #   variance-covariance matrix computed from finite-difference Hessian is
-# not positive definite or contains NA values: falling back to var-cov estimated from RX
+# not positive definite or contains NA values: falling back to var-cov estimated from RX 
 
 
 
