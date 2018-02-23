@@ -307,7 +307,18 @@ Model <- randomForest(as.factor(BPWin) ~ Globes.Drama + Globes.Comedy +
                         AA.Director + AA.Adapt + AA.Original, na.action=na.exclude, importance = T,
                       ntree = 5000, data = TrainData)
 print(Model)
-varImpPlot(Model)
+RF.Imp <- data.frame(varImpPlot(Model))
+RF.Imp$variable <- row.names(RF.Imp)
+#use ggplot
+RF.ImpPlot <- ggplot(data=RF.Imp, aes(x = MeanDecreaseGini, y = reorder(variable, MeanDecreaseGini))) +
+  geom_point(size=3) +
+  scale_x_continuous("Gini Index of Variable Importance", breaks = seq(0,6,2)) +
+  ggtitle("Random Forest Variable Importance") +
+  DotRTheme() +
+  theme(axis.title.y = element_blank())
+ggsave(RF.ImpPlot, filename="RF.ImpPlot.png", height=6, width = 8, dpi=300)
+
+
 
 predictions <- predict(Model, TestData, type="prob")[,2]
 
