@@ -15,6 +15,7 @@ library(ROCR) #For crossvalidation AUC curve
 library(scales) #for percent axis
 library(glmnet) #for glmnet function with lasso and ridge regularization
 library(lme4) # for glmer logistic multilevel modeling
+library(randomForest)
 
 #IMPORT DATA
 OscarData <- read.xlsx("Oscar Winner Data.xlsx", sheetName = "BestPicture")
@@ -187,6 +188,7 @@ data.frame(Year=yr,Name=TestData$Name, BPWin=TestData$BPWin, Prob=probsnorm)
 
 #Approach #2 ----
 #Multilevel Logistic models to account for nesting of movies within years
+#Models don't actually run because of intense multicolinearity
 test.glmer <- glmer(BPWin ~ Globes.Drama.N + Globes.Drama.W + Globes.Comedy.N + Globes.Comedy.W +
                       CCA.N + CCA.W + SAG.N + SAG.W + BAFTA.N + BAFTA.W + PGA.N + PGA.W + DGA.N + DGA.W +
                       WGA.Original.N + WGA.Original.W + WGA.Adapted.N + WGA.Adapted.W +
@@ -205,8 +207,33 @@ summary(test.glmer)
 #   variance-covariance matrix computed from finite-difference Hessian is
 # not positive definite or contains NA values: falling back to var-cov estimated from RX 
 
-#test for github 
+
+#Approach #3 ----
+#Random Forest Classification
+
+# Create the forest.
+test.RF <- randomForest(as.factor(BPWin) ~ Globes.Drama.N + Globes.Drama.W + Globes.Comedy.N + Globes.Comedy.W +
+                        CCA.N + CCA.W + SAG.N + SAG.W + BAFTA.N + BAFTA.W + PGA.N + PGA.W + DGA.N + DGA.W +
+                        WGA.Original.N + WGA.Original.W + WGA.Adapted.N + WGA.Adapted.W +
+                        RT.All + RT.Top + AA.Actor + AA.ActorSup + AA.Actress + AA.ActressSup + 
+                        AA.Director + AA.Adapt + AA.Original, na.action=na.exclude, importance = T,
+                        ntree = 5000, data = OscarData)
+print(test.RF) 
+
+# Importance of each predictor.
+print(importance(test.RF,type = 2))
+
+#plot Accuracy and Gini index
+varImpPlot(test.RF)
 
 
-
-
+#Does random forest need dummy coding
+#No doesn't seem to care which makes sense conceptually based on what it's doing
+test.RF <- randomForest(as.factor(BPWin) ~ Globes.Drama + Globes.Comedy +
+                          CCA + SAG + BAFTA + PGA + DGA +
+                          WGA.Original + WGA.Adapted +
+                          RT.All + RT.Top + AA.Actor + AA.ActorSup + AA.Actress + AA.ActressSup + 
+                          AA.Director + AA.Adapt + AA.Original, na.action=na.exclude, importance = T,
+                        ntree = 5000, data = OscarData)
+print(test.RF) 
+varImpPlot(test.RF)
