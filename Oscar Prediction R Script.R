@@ -353,3 +353,43 @@ data.frame(Year=yr,Name=TestData$Name, BPWin=TestData$BPWin, Prob=probsnorm)
 # 9 2016 Three Billboards Outside Ebbing, Missouri    NA 0.2151191055
 
 
+#Approach #4----
+#Random Forest in combination with bootstrapping
+#Advantage is that it gives a range of predicted likelihoods
+
+#How many years of data do I have
+dim(table(OscarData$Year))
+#21 years of data (20 not counting the 2017 released movies)
+
+#write a function to resample first from years, and then from moview within years
+MLboot <- function(dataset){
+  #sample from available years
+  bootyears <- sample(unique(dataset$Year), size=length(unique(dataset$Year)), replace=T)
+  
+  #initialize boot data with all variables from OscarData
+  bootdata <- dataset[1,]
+  bootdata[1,] <- NA
+  
+  #first bootstrap years 
+  for(b in 1:length(unique(dataset$Year))){
+    #bootstrap movies within years
+    #first subset data to single year
+    yeardata <- subset(dataset, Year==bootyears[b])
+    
+    #second, bootstrap movies from within yeardata
+    for (k in 1:dim(yeardata)[1]){
+      bootdata <- rbind(bootdata, yeardata[sample(1:dim(yeardata)[1], 1),])
+    }
+  }
+  
+  #delete first NA row
+  bootdata <- na.exclude(bootdata)
+  return(bootdata)
+}
+
+#test bootstrapping function
+#seems to work great
+MLboot(subset(OscarData, Year <= 2000))
+
+
+
