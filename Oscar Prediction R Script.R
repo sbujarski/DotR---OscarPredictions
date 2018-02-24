@@ -436,6 +436,7 @@ for(yr in 1997:2016){
 
 L1outPreds.RFboot <- na.exclude(L1outPreds.RFboot)
 View(L1outPreds.RFboot)
+write.csv(L1outPreds.RFboot, "L1outPreds.RFboot.csv")
 
 
 #What percentage would have been called correctly
@@ -456,8 +457,28 @@ SpHist(subset(L1outPreds.RFboot, BPWin==1)$Prob)
 L1outPreds.RFboot <- left_join(L1outPreds.RFboot, OscarData)
 #calculating RMSE
 sqrt(sum((L1outPreds.RFboot$Prob - L1outPreds.RFboot$BPWin)^2)/sum(!is.na(L1outPreds.RFboot$BPWin)))
-#0.2727928
+#0.2718278
 #misses on average by 27%, but that is considering the outcome is binary
-#Pretty similar to the logistic regression with regularization
+#All processes are almost identical
+#going with RF w/ bootstrapping though because it gives confidence bands
+
+for(yr in 1997:2016){
+  print(ggplot(subset(L1outPreds.RFboot, Year==yr), aes(x=Prob, y=reorder(Name, Prob), colour=as.factor(BPWin))) +
+    geom_point(size=5) +
+    geom_errorbarh(aes(xmax=UL, xmin=LL), height = 0, size=3, alpha=.5) +
+    scale_x_continuous("Predicted Win Probability", labels=percent, limits=c(0,1.05), breaks=seq(0,1,.2)) +
+    scale_colour_manual(values=c("grey", "gold")) + 
+    ggtitle(yr) + 
+    DotRTheme() + theme(axis.title.y=element_blank()))
+}
+
+# ggplot(subset(L1outPreds.RFboot, Year==1997), aes(x=Prob, y=Name, colour=as.factor(BPWin))) +
+#   geom_point(size=4) +
+#   geom_errorbarh(aes(xmax=UL, xmin=LL), height = 0, size=2, alpha=.5) +
+#   scale_x_continuous("Predicted Win Probability", labels=percent, limits=c(0,1.05), breaks=seq(0,1,.2)) +
+#   ggtitle("1997") + 
+#   DotRTheme() + theme(axis.title.y=element_blank())
+# 
+# multiplot()
 
 
