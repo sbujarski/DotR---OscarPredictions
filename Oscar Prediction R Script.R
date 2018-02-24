@@ -393,9 +393,9 @@ MLboot(subset(OscarData, Year <= 2000))
 
 
 #Leave 1 out cross-validation with bootstrapping (adds in confidence bands of prediction)
+Nboots = 1000
 L1outPreds.RFboot <- data.frame(Year=NA,Name=NA, BPWin=NA, Prob=NA, LL=NA, UL=NA)
 
-Nboots = 10
 for(yr in 1997:2016){
   #split data based on leave-one(year)-out
   TrainData <- na.exclude(subset(OscarData, Year!=yr))
@@ -445,18 +445,17 @@ for(yr in 1997:2016){
   #was the movie called that year? 
   callsnew <-  ifelse(subset(L1outPreds.RF, Year==yr)$Prob==max(subset(L1outPreds.RF, Year==yr)$Prob),1,0)
   calls <-c(calls, callsnew)
-  
 }
 
-L1outPreds.RF$calls <- calls
-table(L1outPreds.RF$BPWin, L1outPreds.RF$calls)
+L1outPreds.RFboot$calls <- calls
+table(L1outPreds.RFboot$BPWin, L1outPreds.RFboot$calls)
 
-SpHist(subset(L1outPreds.RF, BPWin==1)$Prob)
+SpHist(subset(L1outPreds.RFboot, BPWin==1)$Prob)
 
 #Accuracy testing via root mean squared error
-L1outPreds.RF <- left_join(L1outPreds.RF, OscarData)
+L1outPreds.RFboot <- left_join(L1outPreds.RFboot, OscarData)
 #calculating RMSE
-sqrt(sum((L1outPreds.RF$Prob - L1outPreds.RF$BPWin)^2)/sum(!is.na(L1outPreds.RF$BPWin)))
+sqrt(sum((L1outPreds.RFboot$Prob - L1outPreds.RFboot$BPWin)^2)/sum(!is.na(L1outPreds.RFboot$BPWin)))
 #0.2727928
 #misses on average by 27%, but that is considering the outcome is binary
 #Pretty similar to the logistic regression with regularization
