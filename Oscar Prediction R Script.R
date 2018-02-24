@@ -262,7 +262,7 @@ for(yr in 1997:2016){
   TrainData <- na.exclude(subset(OscarData, Year!=yr))
   TestData <- na.exclude(subset(OscarData, Year==yr))
   
-  #run model with lasso regularization
+  #run model
   Model <- randomForest(as.factor(BPWin) ~ Globes.Drama + Globes.Comedy +
                           CCA + SAG + BAFTA + PGA + DGA +
                           WGA.Original + WGA.Adapted +
@@ -391,5 +391,74 @@ MLboot <- function(dataset){
 #seems to work great
 MLboot(subset(OscarData, Year <= 2000))
 
+
+#Leave 1 out cross-validation with bootstrapping (adds in confidence bands of prediction)
+L1outPreds.RFboot <- data.frame(Year=NA,Name=NA, BPWin=NA, Prob=NA, LL=NA, UL=NA)
+
+Nboots = 10
+for(yr in 1997:2016){
+  #split data based on leave-one(year)-out
+  TrainData <- na.exclude(subset(OscarData, Year!=yr))
+  TestData <- na.exclude(subset(OscarData, Year==yr))
+  
+  bootpreds <- setNames(data.frame(matrix(ncol = length(TestData$Name), nrow = 1)), TestData$Name)
+  
+  #loop of bootstrapping predictions
+  for(bs in 1:Nboots){
+    
+    print(noquote(paste("Test Year: ", yr, "  Boot Number: ", bs, " of ", Nboots)))
+    #run RF model
+    Model <- randomForest(as.factor(BPWin) ~ Globes.Drama + Globes.Comedy +
+                            CCA + SAG + BAFTA + PGA + DGA +
+                            WGA.Original + WGA.Adapted +
+                            RT.All + RT.Top + AA.Actor + AA.ActorSup + AA.Actress + AA.ActressSup + 
+                            AA.Director + AA.Adapt + AA.Original, na.action=na.exclude, importance = T,
+                          ntree = 500, data = MLboot(TrainData)) #bumping ntree down to 500 because we are going to bootstrap
+    
+    predictions <- predict(Model, TestData, type="prob")[,2]
+    
+    #normalize probabilities to year
+    probsnorm <- ProbNorm(predictions)
+    names(probsnorm) <- TestData$Name
+    
+    bootpreds <- rbind(bootpreds, probsnorm)
+  }
+  
+  bootpreds <- na.exclude(bootpreds)
+  boot.meanCI <- t(sapply(bootpreds, function(x) {
+    c(M = mean(x), quantile(x, c(0.10, 0.90)))
+    }))
+  
+  #return data from year left out
+  L1outPreds.RFboot <- rbind(L1outPreds.RFboot, data.frame(Year=yr,Name=TestData$Name, BPWin=TestData$BPWin, 
+                                                      Prob=boot.meanCI[,1], LL=boot.meanCI[,2], UL=boot.meanCI[,3]))
+}
+
+L1outPreds.RFboot <- na.exclude(L1outPreds.RFboot)
+View(L1outPreds.RFboot)
+
+
+#What percentage would have been called correctly
+calls <- c()
+callsper <- c()
+for(yr in 1997:2016){
+  #was the movie called that year? 
+  callsnew <-  ifelse(subset(L1outPreds.RF, Year==yr)$Prob==max(subset(L1outPreds.RF, Year==yr)$Prob),1,0)
+  calls <-c(calls, callsnew)
+  
+}
+
+L1outPreds.RF$calls <- calls
+table(L1outPreds.RF$BPWin, L1outPreds.RF$calls)
+
+SpHist(subset(L1outPreds.RF, BPWin==1)$Prob)
+
+#Accuracy testing via root mean squared error
+L1outPreds.RF <- left_join(L1outPreds.RF, OscarData)
+#calculating RMSE
+sqrt(sum((L1outPreds.RF$Prob - L1outPreds.RF$BPWin)^2)/sum(!is.na(L1outPreds.RF$BPWin)))
+#0.2727928
+#misses on average by 27%, but that is considering the outcome is binary
+#Pretty similar to the logistic regression with regularization
 
 
