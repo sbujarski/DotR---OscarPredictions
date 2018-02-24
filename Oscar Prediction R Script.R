@@ -472,7 +472,7 @@ for(yr in 1997:2016){
     DotRTheme() + theme(axis.title.y=element_blank())
   
   plot
-  ggsave(plot, filename=paste(yr, "plot.png"), width=5, height=7, dpi=300)
+  ggsave(plot, filename=paste(yr, "plot.png"), width=8, height=5, dpi=300)
 }
 
 # ggplot(subset(L1outPreds.RFboot, Year==1997), aes(x=Prob, y=Name, colour=as.factor(BPWin))) +
