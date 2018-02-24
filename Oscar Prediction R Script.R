@@ -463,13 +463,16 @@ sqrt(sum((L1outPreds.RFboot$Prob - L1outPreds.RFboot$BPWin)^2)/sum(!is.na(L1outP
 #going with RF w/ bootstrapping though because it gives confidence bands
 
 for(yr in 1997:2016){
-  print(ggplot(subset(L1outPreds.RFboot, Year==yr), aes(x=Prob, y=reorder(Name, Prob), colour=as.factor(BPWin))) +
+  plot <- ggplot(subset(L1outPreds.RFboot, Year==yr), aes(x=Prob, y=reorder(Name, Prob), colour=as.factor(BPWin))) +
     geom_point(size=5) +
     geom_errorbarh(aes(xmax=UL, xmin=LL), height = 0, size=3, alpha=.5) +
     scale_x_continuous("Predicted Win Probability", labels=percent, limits=c(0,1.05), breaks=seq(0,1,.2)) +
     scale_colour_manual(values=c("grey", "gold")) + 
     ggtitle(yr) + 
-    DotRTheme() + theme(axis.title.y=element_blank()))
+    DotRTheme() + theme(axis.title.y=element_blank())
+  
+  plot
+  ggsave(plot, filename=paste(yr, "plot.png"), width=5, height=7, dpi=300)
 }
 
 # ggplot(subset(L1outPreds.RFboot, Year==1997), aes(x=Prob, y=Name, colour=as.factor(BPWin))) +
