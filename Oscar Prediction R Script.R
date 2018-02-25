@@ -462,6 +462,7 @@ sqrt(sum((L1outPreds.RFboot$Prob - L1outPreds.RFboot$BPWin)^2)/sum(!is.na(L1outP
 #All processes are almost identical
 #going with RF w/ bootstrapping though because it gives confidence bands
 
+#plotting historical leave 1(year) out cross-validation with bootstrapping
 for(yr in 1997:2016){
   plot <- ggplot(subset(L1outPreds.RFboot, Year==yr), aes(x=Prob, y=reorder(Name, Prob), colour=as.factor(BPWin))) +
     geom_point(size=5) +
@@ -470,18 +471,75 @@ for(yr in 1997:2016){
     scale_colour_manual(values=c("grey", "gold")) + 
     ggtitle(yr) + 
     DotRTheme() + theme(axis.title.y=element_blank())
-  
   plot
   ggsave(plot, filename=paste(yr, "plot.png"), width=8, height=5, dpi=300)
 }
 
-# ggplot(subset(L1outPreds.RFboot, Year==1997), aes(x=Prob, y=Name, colour=as.factor(BPWin))) +
-#   geom_point(size=4) +
-#   geom_errorbarh(aes(xmax=UL, xmin=LL), height = 0, size=2, alpha=.5) +
-#   scale_x_continuous("Predicted Win Probability", labels=percent, limits=c(0,1.05), breaks=seq(0,1,.2)) +
-#   ggtitle("1997") + 
-#   DotRTheme() + theme(axis.title.y=element_blank())
-# 
-# multiplot()
+#Plot all historical data together
+#Shorten titles
+L1outPreds.RFboot$Name.Sh <- ifelse(L1outPreds.RFboot$Name=="Crouching Tiger, Hidden Dragon", "Crouching Tiger",
+                                    ifelse(L1outPreds.RFboot$Name=="The Lord of the Rings: The Fellowship of the Ring", "LotR: Fellowship",
+                                           ifelse(L1outPreds.RFboot$Name=="The Lord of the Rings: The Two Towers", "LotR: Two Towers",
+                                                  ifelse(L1outPreds.RFboot$Name=="The Lord of the Rings: The Return of the King", "LotR: Return of the King",
+                                                         ifelse(L1outPreds.RFboot$Name=="Master and Commander: The Far Side of the World", "Master and Commander",
+                                                                ifelse(L1outPreds.RFboot$Name=="The Curious Case of Benjamin Button", "Benjamin Button",
+                                                                       ifelse(L1outPreds.RFboot$Name=="Precious: Based on the Novel Push by Sapphire", "Precious",
+                                                                              ifelse(L1outPreds.RFboot$Name=="Les MisÃ©rables", "Les Miserables",
+                                                                                     ifelse(L1outPreds.RFboot$Name=="Birdman or (The Unexpected Virtue of Ignorance)", "Birdman",L1outPreds.RFboot$Name)))))))))
+
+
+
+Historicalplot <- ggplot(L1outPreds.RFboot, aes(x=Prob, y=reorder(Name.Sh, Prob), colour=as.factor(BPWin))) +
+  geom_point(size=5) +
+  geom_errorbarh(aes(xmax=UL, xmin=LL), height = 0, size=3, alpha=.5) +
+  facet_wrap( ~ Year, nrow = 5, scales = 'free_y') + 
+  scale_x_continuous("Predicted Win Probability", labels=percent, limits=c(0,1.05), breaks=seq(0,1,.2)) +
+  scale_colour_manual(values=c("grey", "gold")) + 
+  ggtitle("Historical Predictions") + 
+  DotRTheme() + 
+  theme(axis.text.y = element_text(size=10), axis.text.x = element_text(size=10), 
+        axis.title.y=element_blank(), strip.text = element_text(size=12, face="bold"))
+Historicalplot
+ggsave(Historicalplot, filename="HistoricalplotAll.png", width=20, height = 12, dpi=300)
+
+#2017 predictions
+#split data based on leave-one(year)-out
+yr <- 2017
+TrainData <- na.exclude(subset(OscarData, Year!=yr))
+TestData <- subset(OscarData, Year==yr)
+
+bootpreds <- setNames(data.frame(matrix(ncol = length(TestData$Name), nrow = 1)), TestData$Name)
+
+#loop of bootstrapping predictions
+for(bs in 1:Nboots){
+  
+  print(noquote(paste("Test Year: ", yr, "  Boot Number: ", bs, " of ", Nboots)))
+  #run RF model
+  Model <- randomForest(as.factor(BPWin) ~ Globes.Drama + Globes.Comedy +
+                          CCA + SAG + BAFTA + PGA + DGA +
+                          WGA.Original + WGA.Adapted +
+                          RT.All + RT.Top + AA.Actor + AA.ActorSup + AA.Actress + AA.ActressSup + 
+                          AA.Director + AA.Adapt + AA.Original, na.action=na.exclude, importance = T,
+                        ntree = 500, data = MLboot(TrainData)) #bumping ntree down to 500 because we are going to bootstrap
+  
+  predictions <- predict(Model, TestData, type="prob")[,2]
+  
+  #normalize probabilities to year
+  probsnorm <- ProbNorm(predictions)
+  names(probsnorm) <- TestData$Name
+  
+  bootpreds <- rbind(bootpreds, probsnorm)
+}
+
+bootpreds <- na.exclude(bootpreds)
+boot.meanCI <- t(sapply(bootpreds, function(x) {
+  c(M = mean(x), quantile(x, c(0.10, 0.90)))
+}))
+
+# #return data from year left out
+# L1outPreds.RFboot <- rbind(L1outPreds.RFboot, data.frame(Year=yr,Name=TestData$Name, BPWin=TestData$BPWin, 
+#                                                          Prob=boot.meanCI[,1], LL=boot.meanCI[,2], UL=boot.meanCI[,3]))
+
+
 
 
