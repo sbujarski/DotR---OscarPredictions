@@ -546,13 +546,27 @@ for(bs in 1:Nboots){
 }
 
 bootpreds <- na.exclude(bootpreds)
+
+#computing mean prediction and 80% CI
 boot.meanCI <- t(sapply(bootpreds, function(x) {
   c(M = mean(x), quantile(x, c(0.10, 0.90)))
 }))
+Predictions2018 <- data.frame(Year=yr, Name=TestData$Name, Prob=boot.meanCI[,1], LL=boot.meanCI[,2], UL=boot.meanCI[,3])
 
-# #return data from year left out
-# L1outPreds.RFboot <- rbind(L1outPreds.RFboot, data.frame(Year=yr,Name=TestData$Name, BPWin=TestData$BPWin, 
-#                                                          Prob=boot.meanCI[,1], LL=boot.meanCI[,2], UL=boot.meanCI[,3]))
+#rename 3 billboards
+levels(Predictions2018$Name) <- c(levels(Predictions2018$Name), "Three Billboards") 
+Predictions2018$Name[9] <- "Three Billboards"
+
+OscarPred2018.plot <- ggplot(Predictions2018, aes(x=Prob, y=reorder(Name, Prob))) +
+  geom_point(size=5, colour="#929292") +
+  geom_errorbarh(aes(xmax=UL, xmin=LL), height = 0, size=3, alpha=.5, colour="#929292") +
+  scale_x_continuous("Predicted Win Probability", labels=percent, limits=c(0,1.05), breaks=seq(0,1,.2)) +
+  ggtitle("Best Picture 2018 Predictions") + 
+  DotRTheme() + theme(axis.title.y=element_blank())
+OscarPred2018.plot
+ggsave(Historicalplot, filename="HistoricalplotAll.png", width=20, height = 12, dpi=300)
+
+
 
 
 
