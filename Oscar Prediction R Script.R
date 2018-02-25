@@ -564,10 +564,39 @@ OscarPred2018.plot <- ggplot(Predictions2018, aes(x=Prob, y=reorder(Name, Prob))
   ggtitle("Best Picture 2018 Predictions") + 
   DotRTheme() + theme(axis.title.y=element_blank())
 OscarPred2018.plot
-ggsave(Historicalplot, filename="HistoricalplotAll.png", width=20, height = 12, dpi=300)
+ggsave(OscarPred2018.plot, filename="OscarPred2018.plot.png", width=8, height = 7, dpi=500)
 
 
 
+#Thinking of plotting probabilities over the awards season
+Timeline <- read.xlsx("Awards Season Timeline.xlsx", sheetName = "Sheet1")
+SpDesc(Timeline)
+Timeline <- Timeline[-1,] #start with RT scores as default
+
+TimeData <- function(dataset, timeline, date){
+  #Loop through dates on timeline to get varaibles to pass to randomForest
+  variables=c("RT.All", "RT.Top") #start with RT scores only
+  for(t in 1:length(timeline$Date)){
+    if(date>=timeline$Date[t]){ #add in variables based on whether date has past
+      variables <- c(variables, timeline[t,4:10][!is.na(timeline[t,4:10])])
+    }
+  }
+  
+  #NEED TO MAKE 2 DATASETS OF NOMINATIONS AND WINS
+  #THAT WAY CAN WALK THROUGH NOMS FIRST FOR VARIABLE LIST AND WINS SECOND FOR RECODING IF NOT PASSED
+  #Rescore 2s to 1s if only nominations and no winners
+  for(v in 1:length(variables)){
+    if()
+  }
+}
 
 
+
+variables <- c("RT.All",	"RT.Top",	"AA.Actor",	"AA.ActorSup",	"AA.Actress",	"AA.ActressSup",	"AA.Director",	"AA.Adapt",
+               "AA.Original",	"Globes.Drama",	"Globes.Comedy",	"CCA",	"SAG",	"BAFTA",	"PGA",	"DGA",	"WGA.Original",	"WGA.Adapted")
+class(TestData[,variables])
+
+testRF <- randomForest(y=as.factor(TrainData$BPWin), x=TrainData[,variables], na.action=na.exclude, importance = T,
+             ntree = 500)
+varImpPlot(testRF)
 
