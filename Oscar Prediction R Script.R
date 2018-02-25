@@ -502,6 +502,20 @@ Historicalplot <- ggplot(L1outPreds.RFboot, aes(x=Prob, y=reorder(Name.Sh, Prob)
 Historicalplot
 ggsave(Historicalplot, filename="HistoricalplotAll.png", width=20, height = 12, dpi=300)
 
+#plotting historical leave 1(year) out cross-validation with bootstrapping
+#redo with shortenned titles
+for(yr in 1997:2016){
+  plot <- ggplot(subset(L1outPreds.RFboot, Year==yr), aes(x=Prob, y=reorder(Name.Sh, Prob), colour=as.factor(BPWin))) +
+    geom_point(size=5) +
+    geom_errorbarh(aes(xmax=UL, xmin=LL), height = 0, size=3, alpha=.5) +
+    scale_x_continuous("Predicted Win Probability", labels=percent, limits=c(0,1.05), breaks=seq(0,1,.2)) +
+    scale_colour_manual(values=c("grey", "gold")) + 
+    ggtitle(yr) + 
+    DotRTheme() + theme(axis.title.y=element_blank())
+  plot
+  ggsave(plot, filename=paste(yr, "plot.png"), width=8, height=5, dpi=300)
+}
+
 #2017 predictions
 #split data based on leave-one(year)-out
 yr <- 2017
