@@ -608,11 +608,11 @@ TimeData(TestData, Timeline, date="2018-02-01")
 
 #Make full timeline
 yr <- 2017
-Nboots <- 10
+Nboots <- 1000
 TrainData <- na.exclude(subset(OscarData, Year!=yr))
 TestData <- subset(OscarData, Year==yr)
 
-Predictions2018Timeline <- data.frame(Year=yr, date=date("2017-12-01"),Name=TestData$Name, Prob=1/9, LL=.1, UL=.9) #start with even odds
+Predictions2018Timeline <- data.frame(Year=yr, date=date("2017-12-01"),Name=TestData$Name, Prob=1/9, LL=1/9, UL=1/9) #start with even odds
 
 for(t in 1:(length(Timeline$Date)-1)){
   #process Test data for time
@@ -677,19 +677,41 @@ ggsave(OscarPred2018Timeline.plot, filename="OscarPred2018Timeline.plot.png", wi
 
 #try animating
 Dates <- unique(Predictions2018Timeline$date)
+Dates[17] <- "2018-02-25" #Adding final prediction date
+Predictions2018$date <- date("2018-02-25")
+Predictions2018Timeline <- rbind(Predictions2018Timeline, Predictions2018)
 Predictions2018Timeline$Name <- factor(Predictions2018Timeline$Name, levels = rev(c("The Shape of Water", "Three Billboards", "Lady Bird", "Get Out",
                                                                                 "Phantom Thread", "Call Me by Your Name", "The Post", "Dunkirk",
                                                                                 "Darkest Hour")))
+#Add annotations of what happened
+Events <- c("","Critics Choice\nNominations", "Golden Globes\nNominations", "Screen Actors Guild\nNominations", 
+            "Writers Guild\nNominations", "Producers Guild\nNominations", "Golden Globes\nAwards", "BAFTA\nNominations",
+            "Directors Guild\nNominations", "Critics Choice\nAwards", "Producers Guild\nAwards", "Screen Actors Guild\nAwards",
+            "Oscars\nNominations", "Directors Guild\nAwards", "Writers Guild\nAwards", "BAFTA\nAwards", "Final\nPrediction")
+
 for(d in 1:length(Dates)){
   plot <- ggplot(subset(Predictions2018Timeline, date==Dates[d]), aes(x=Prob, y=Name)) +
     geom_point(size=5, colour="#929292") +
     geom_errorbarh(aes(xmax=UL, xmin=LL), height = 0, size=3, alpha=.5, colour="#929292") +
     scale_x_continuous("Predicted Win Probability", labels=percent, limits=c(0,1.05), breaks=seq(0,1,.2)) +
     ggtitle(paste("Best Picture 2018 Predictions")) + 
-    annotate("text", label=format(Dates[d], format="%b %d %Y"), x=.8, y=8.5, colour="black", size=6, fontface="bold", hjust=.5, vjust=0.5) +
+    annotate("text", label=format(Dates[d], format="%b %d %Y"), x=.73, y=1.8, colour="black", size=6, hjust=.5, vjust=0.5) +
+    annotate("text", label=Events[d], x=.73, y=3.0, colour="black", size=7, fontface="bold", hjust=.5, vjust=0.5) +
     DotRTheme() + theme(axis.title.y=element_blank())
-  plot
-  ggsave(plot, filename=paste(Dates[d], "Prediction Plot.png"), width=8, height = 7, dpi=500)
+  print(plot)
+  ggsave(plot, filename=paste(Dates[d], "Prediction Plot.png"), width=8, height = 7, dpi=200)
 }
 
 
+# Predictions2018$Name <- factor(Predictions2018$Name, levels = rev(c("The Shape of Water", "Three Billboards", "Lady Bird", "Get Out",
+#                                                                                     "Phantom Thread", "Call Me by Your Name", "The Post", "Dunkirk",
+#                                                                                     "Darkest Hour")))
+# plot <- ggplot(Predictions2018, aes(x=Prob, y=Name)) +
+#   geom_point(size=5, colour="#929292") +
+#   geom_errorbarh(aes(xmax=UL, xmin=LL), height = 0, size=3, alpha=.5, colour="#929292") +
+#   scale_x_continuous("Predicted Win Probability", labels=percent, limits=c(0,1.05), breaks=seq(0,1,.2)) +
+#   ggtitle(paste("Best Picture 2018 Predictions")) + 
+#   annotate("text", label="Final Prediction", x=.8, y=3.5, colour="black", size=6, fontface="bold", hjust=.5, vjust=0.5) +
+#   DotRTheme() + theme(axis.title.y=element_blank())
+# plot
+# ggsave(plot, filename="Final Prediction Plot.png", width=8, height = 7, dpi=200)
