@@ -684,7 +684,7 @@ Predictions2018Timeline$Name <- factor(Predictions2018Timeline$Name, levels = re
                                                                                 "Phantom Thread", "Call Me by Your Name", "The Post", "Dunkirk",
                                                                                 "Darkest Hour")))
 #Add annotations of what happened
-Events <- c("","Critics Choice\nNominations", "Golden Globes\nNominations", "Screen Actors Guild\nNominations", 
+Events <- c("Baseline","Critics Choice\nNominations", "Golden Globes\nNominations", "Screen Actors Guild\nNominations", 
             "Writers Guild\nNominations", "Producers Guild\nNominations", "Golden Globes\nAwards", "BAFTA\nNominations",
             "Directors Guild\nNominations", "Critics Choice\nAwards", "Producers Guild\nAwards", "Screen Actors Guild\nAwards",
             "Oscars\nNominations", "Directors Guild\nAwards", "Writers Guild\nAwards", "BAFTA\nAwards", "Final\nPrediction")
@@ -699,7 +699,7 @@ for(d in 1:length(Dates)){
     annotate("text", label=Events[d], x=.73, y=3.0, colour="black", size=7, fontface="bold", hjust=.5, vjust=0.5) +
     DotRTheme() + theme(axis.title.y=element_blank())
   print(plot)
-  ggsave(plot, filename=paste(Dates[d], "Prediction Plot.png"), width=8, height = 7, dpi=200)
+  ggsave(plot, filename=paste(Dates[d], "Prediction Plot.png"), width=10, height = 7, dpi=200)
 }
 
 
