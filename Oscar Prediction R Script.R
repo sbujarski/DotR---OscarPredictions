@@ -569,7 +569,7 @@ ggsave(OscarPred2018.plot, filename="OscarPred2018.plot.png", width=8, height = 
 
 
 
-#Thinking of plotting probabilities over the awards season
+#Plotting an animated graph to show shanges in predictions
 Timeline <- read.xlsx("Awards Season Timeline.xlsx", sheetName = "Sheet1")
 SpDesc(Timeline)
 Timeline <- Timeline[-1,] #start with RT scores as default
@@ -662,17 +662,17 @@ for(i in 1:length(Predictions2018Timeline$Name)){
 
 #plot timeline of prediction
 #too ugly to have the all on top of eachother
-OscarPred2018Timeline.plot <- ggplot(subset(Predictions2018Timeline, Predictions2018Timeline$Name %in% c("The Shape of Water", "Three Billboards", "Lady Bird", "Get Out")),
-                                     aes(x=date, y=Prob, colour=Name)) +
-  geom_line(size=2) +
-  geom_ribbon(aes(ymin=LL, ymax=UL, fill=Name), alpha=0.2, colour=NA) + 
-  scale_x_date(date_labels = "%b %d") +
-  scale_y_continuous("Win Probability", labels=percent) + 
-  ggtitle("Best Picture 2018 Predictions") + 
-  DotRTheme(legend.position = "right")
-OscarPred2018Timeline.plot
-ggsave(OscarPred2018Timeline.plot, filename="OscarPred2018Timeline.plot.png", width=8, height = 7, dpi=500)
-
+# OscarPred2018Timeline.plot <- ggplot(subset(Predictions2018Timeline, Predictions2018Timeline$Name %in% c("The Shape of Water", "Three Billboards", "Lady Bird", "Get Out")),
+#                                      aes(x=date, y=Prob, colour=Name)) +
+#   geom_line(size=2) +
+#   geom_ribbon(aes(ymin=LL, ymax=UL, fill=Name), alpha=0.2, colour=NA) + 
+#   scale_x_date(date_labels = "%b %d") +
+#   scale_y_continuous("Win Probability", labels=percent) + 
+#   ggtitle("Best Picture 2018 Predictions") + 
+#   DotRTheme(legend.position = "right")
+# OscarPred2018Timeline.plot
+# ggsave(OscarPred2018Timeline.plot, filename="OscarPred2018Timeline.plot.png", width=8, height = 7, dpi=500)
+# 
 
 
 #try animating
@@ -680,8 +680,8 @@ Dates <- unique(Predictions2018Timeline$date)
 Dates[17] <- "2018-02-25" #Adding final prediction date
 Predictions2018$date <- date("2018-02-25")
 Predictions2018Timeline <- rbind(Predictions2018Timeline, Predictions2018)
-Predictions2018Timeline$Name <- factor(Predictions2018Timeline$Name, levels = rev(c("The Shape of Water", "Three Billboards", "Lady Bird", "Get Out",
-                                                                                "Phantom Thread", "Call Me by Your Name", "The Post", "Dunkirk",
+Predictions2018Timeline$Name <- factor(Predictions2018Timeline$Name, levels = rev(c("The Shape of Water", "Three Billboards", "Get Out", "Lady Bird",
+                                                                                "Call Me by Your Name", "Phantom Thread", "The Post", "Dunkirk",
                                                                                 "Darkest Hour")))
 #Add annotations of what happened
 Events <- c("Baseline","Critics Choice\nNominations", "Golden Globes\nNominations", "Screen Actors Guild\nNominations", 
