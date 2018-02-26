@@ -574,23 +574,38 @@ SpDesc(Timeline)
 Timeline <- Timeline[-1,] #start with RT scores as default
 
 TimeData <- function(dataset, timeline, date){
-  #Loop through dates on timeline to get varaibles to pass to randomForest
+  #split data into Nominations and Award
+  Nominations <- subset(timeline, Nom==1)
+  Awards <- subset(timeline, Nom==0)
+  
+  #Loop through dates on Nominations timeline to get varaibles to pass to randomForest
   variables=c("RT.All", "RT.Top") #start with RT scores only
-  for(t in 1:length(timeline$Date)){
-    if(date>=timeline$Date[t]){ #add in variables based on whether date has past
-      variables <- c(variables, timeline[t,4:10][!is.na(timeline[t,4:10])])
+  for(n in 1:length(Nominations$Date)){
+    if(date>=Nominations$Date[n]){ #add in variables based on whether date has past
+      variables <- c(variables, Nominations[n,4:10][!is.na(Nominations[n,4:10])])
     }
   }
   
-  #NEED TO MAKE 2 DATASETS OF NOMINATIONS AND WINS
-  #THAT WAY CAN WALK THROUGH NOMS FIRST FOR VARIABLE LIST AND WINS SECOND FOR RECODING IF NOT PASSED
+  #make matrix of data from variables list
+  newdataset <- dataset[,variables]
+
   #Rescore 2s to 1s if only nominations and no winners
-  for(v in 1:length(variables)){
-    if()
+  for(v in 3:length(variables)){
+    if(date < subset(Awards, substr(Var1,1,2)==substr(variables[v],1,2))$Date){
+      newdataset[,variables[v]] <- ifelse(newdataset[,variables[v]]==2,1,newdataset[,variables[v]])
+    }
   }
+  
+  #return new dataset with only nominations/awards that have already happened
+  return(newdataset)
 }
 
+#test TimeData -- works great!
+TimeData(TestData, Timeline, date="2018-01-09")
+TimeData(TestData, Timeline, date="2018-02-01")
 
+
+#
 
 variables <- c("RT.All",	"RT.Top",	"AA.Actor",	"AA.ActorSup",	"AA.Actress",	"AA.ActressSup",	"AA.Director",	"AA.Adapt",
                "AA.Original",	"Globes.Drama",	"Globes.Comedy",	"CCA",	"SAG",	"BAFTA",	"PGA",	"DGA",	"WGA.Original",	"WGA.Adapted")
