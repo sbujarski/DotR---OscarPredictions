@@ -608,7 +608,7 @@ TimeData(TestData, Timeline, date="2018-02-01")
 
 #Make full timeline
 yr <- 2017
-Nboots <- 10
+Nboots <- 1000
 TrainData <- na.exclude(subset(OscarData, Year!=yr))
 TestData <- subset(OscarData, Year==yr)
 
@@ -650,8 +650,8 @@ for(t in 1:(length(Timeline$Date)-1)){
 }
 
 #rename 3 billboards
-levels(Predictions2018$Name) <- c(levels(Predictions2018$Name), "Three Billboards") 
-Predictions2018$Name[9] <- "Three Billboards"
+#levels(Predictions2018$Name) <- c(levels(Predictions2018$Name), "Three Billboards") 
+#Predictions2018$Name[9] <- "Three Billboards"
 
 
 
