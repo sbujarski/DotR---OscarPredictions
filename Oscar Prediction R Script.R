@@ -245,14 +245,14 @@ varImpPlot(test.RF)
 
 #Does random forest need dummy coding
 #No doesn't seem to care which makes sense conceptually based on what it's doing
-test.RF <- randomForest(as.factor(BPWin) ~ Globes.Drama + Globes.Comedy +
+randomForest.Model.Results <- randomForest(as.factor(BPWin) ~ Globes.Drama + Globes.Comedy +
                           CCA + SAG + BAFTA + PGA + DGA +
                           WGA.Original + WGA.Adapted +
                           RT.All + RT.Top + AA.Actor + AA.ActorSup + AA.Actress + AA.ActressSup + 
                           AA.Director + AA.Adapt + AA.Original, na.action=na.exclude, importance = T,
                         ntree = 5000, data = OscarData)
-print(test.RF) 
-varImpPlot(test.RF)
+print(randomForest.Model.Results) 
+varImpPlot(randomForest.Model.Results)
 
 #Leave 1 out cross-validation
 L1outPreds.RF <- data.frame(Year=NA,Name=NA, BPWin=NA, Prob=NA)
