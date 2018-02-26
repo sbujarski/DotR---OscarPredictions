@@ -608,11 +608,11 @@ TimeData(TestData, Timeline, date="2018-02-01")
 
 #Make full timeline
 yr <- 2017
-Nboots <- 1000
+Nboots <- 10
 TrainData <- na.exclude(subset(OscarData, Year!=yr))
 TestData <- subset(OscarData, Year==yr)
 
-Predictions2018Timeline <- data.frame(Year=yr, date=date("2017-12-01"),Name=TestData$Name, Prob=1/9, LL=1/9, UL=1/9) #start with even odds
+Predictions2018Timeline <- data.frame(Year=yr, date=date("2017-12-01"),Name=TestData$Name, Prob=1/9, LL=.1, UL=.9) #start with even odds
 
 for(t in 1:(length(Timeline$Date)-1)){
   #process Test data for time
@@ -626,8 +626,12 @@ for(t in 1:(length(Timeline$Date)-1)){
   for(bs in 1:Nboots){
     
     print(noquote(paste("Date: ", Timeline$Date[t], "  Boot Number: ", bs, " of ", Nboots)))
+    
+    #Need to make dataframe to use MLboot
+    bootedTrainData <- MLboot(TrainData[c("Name", "Year", "BPWin", variables)])
+    
     #run RF model
-    Model <- randomForest(y=as.factor(TrainData$BPWin), x=TrainData[,variables], na.action=na.exclude, importance = T,
+    Model <- randomForest(y=as.factor(bootedTrainData$BPWin), x=bootedTrainData[,variables], na.action=na.exclude, importance = T,
                           ntree = 500)
     
     predictions <- predict(Model, newTestData, type="prob")[,2]
@@ -648,12 +652,44 @@ for(t in 1:(length(Timeline$Date)-1)){
   
   Predictions2018Timeline <- rbind(Predictions2018Timeline, data.frame(Year=yr, date=Timeline$Date[t], Name=TestData$Name, Prob=boot.meanCI[,1], LL=boot.meanCI[,2], UL=boot.meanCI[,3]))
 }
-
 #rename 3 billboards
-#levels(Predictions2018$Name) <- c(levels(Predictions2018$Name), "Three Billboards") 
-#Predictions2018$Name[9] <- "Three Billboards"
+levels(Predictions2018Timeline$Name) <- c(levels(Predictions2018Timeline$Name), "Three Billboards") 
+for(i in 1:length(Predictions2018Timeline$Name)){
+  if(Predictions2018Timeline$Name[i] == "Three Billboards Outside Ebbing, Missouri"){
+    Predictions2018Timeline$Name[i] <- "Three Billboards"
+  }
+}
+
+#plot timeline of prediction
+#too ugly to have the all on top of eachother
+OscarPred2018Timeline.plot <- ggplot(subset(Predictions2018Timeline, Predictions2018Timeline$Name %in% c("The Shape of Water", "Three Billboards", "Lady Bird", "Get Out")),
+                                     aes(x=date, y=Prob, colour=Name)) +
+  geom_line(size=2) +
+  geom_ribbon(aes(ymin=LL, ymax=UL, fill=Name), alpha=0.2, colour=NA) + 
+  scale_x_date(date_labels = "%b %d") +
+  scale_y_continuous("Win Probability", labels=percent) + 
+  ggtitle("Best Picture 2018 Predictions") + 
+  DotRTheme(legend.position = "right")
+OscarPred2018Timeline.plot
+ggsave(OscarPred2018Timeline.plot, filename="OscarPred2018Timeline.plot.png", width=8, height = 7, dpi=500)
 
 
 
+#try animating
+Dates <- unique(Predictions2018Timeline$date)
+Predictions2018Timeline$Name <- factor(Predictions2018Timeline$Name, levels = rev(c("The Shape of Water", "Three Billboards", "Lady Bird", "Get Out",
+                                                                                "Phantom Thread", "Call Me by Your Name", "The Post", "Dunkirk",
+                                                                                "Darkest Hour")))
+for(d in 1:length(Dates)){
+  plot <- ggplot(subset(Predictions2018Timeline, date==Dates[d]), aes(x=Prob, y=Name)) +
+    geom_point(size=5, colour="#929292") +
+    geom_errorbarh(aes(xmax=UL, xmin=LL), height = 0, size=3, alpha=.5, colour="#929292") +
+    scale_x_continuous("Predicted Win Probability", labels=percent, limits=c(0,1.05), breaks=seq(0,1,.2)) +
+    ggtitle(paste("Best Picture 2018 Predictions")) + 
+    annotate("text", label=format(Dates[d], format="%b %d %Y"), x=.8, y=8.5, colour="black", size=6, fontface="bold", hjust=.5, vjust=0.5) +
+    DotRTheme() + theme(axis.title.y=element_blank())
+  plot
+  ggsave(plot, filename=paste(Dates[d], "Prediction Plot.png"), width=8, height = 7, dpi=500)
+}
 
 
