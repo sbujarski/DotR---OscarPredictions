@@ -518,6 +518,7 @@ for(yr in 1997:2016){
 
 #2017 predictions
 #split data based on leave-one(year)-out
+Nboots=1000
 yr <- 2017
 TrainData <- na.exclude(subset(OscarData, Year!=yr))
 TestData <- subset(OscarData, Year==yr)
@@ -597,7 +598,7 @@ TimeData <- function(dataset, timeline, date){
   }
   
   #return new dataset with only nominations/awards that have already happened
-  return(newdataset)
+  return(list(variables=variables, newdataset=newdataset))
 }
 
 #test TimeData -- works great!
@@ -605,13 +606,54 @@ TimeData(TestData, Timeline, date="2018-01-09")
 TimeData(TestData, Timeline, date="2018-02-01")
 
 
-#
+#Make full timeline
+yr <- 2017
+Nboots <- 10
+TrainData <- na.exclude(subset(OscarData, Year!=yr))
+TestData <- subset(OscarData, Year==yr)
 
-variables <- c("RT.All",	"RT.Top",	"AA.Actor",	"AA.ActorSup",	"AA.Actress",	"AA.ActressSup",	"AA.Director",	"AA.Adapt",
-               "AA.Original",	"Globes.Drama",	"Globes.Comedy",	"CCA",	"SAG",	"BAFTA",	"PGA",	"DGA",	"WGA.Original",	"WGA.Adapted")
-class(TestData[,variables])
+Predictions2018Timeline <- data.frame(Year=yr, date=date("2017-12-01"),Name=TestData$Name, Prob=1/9, LL=1/9, UL=1/9) #start with even odds
 
-testRF <- randomForest(y=as.factor(TrainData$BPWin), x=TrainData[,variables], na.action=na.exclude, importance = T,
-             ntree = 500)
-varImpPlot(testRF)
+for(t in 1:(length(Timeline$Date)-1)){
+  #process Test data for time
+  TimeDataRes <- TimeData(TestData, Timeline, date=Timeline$Date[t])
+  newTestData <- TimeDataRes$newdataset
+  variables <- TimeDataRes$variables
+  
+  bootpreds <- setNames(data.frame(matrix(ncol = length(TestData$Name), nrow = 1)), TestData$Name)
+  
+  #loop of bootstrapping predictions with new testdata
+  for(bs in 1:Nboots){
+    
+    print(noquote(paste("Date: ", Timeline$Date[t], "  Boot Number: ", bs, " of ", Nboots)))
+    #run RF model
+    Model <- randomForest(y=as.factor(TrainData$BPWin), x=TrainData[,variables], na.action=na.exclude, importance = T,
+                          ntree = 500)
+    
+    predictions <- predict(Model, newTestData, type="prob")[,2]
+    
+    #normalize probabilities to year
+    probsnorm <- ProbNorm(predictions)
+    names(probsnorm) <- TestData$Name
+    
+    bootpreds <- rbind(bootpreds, probsnorm)
+  }
+  
+  bootpreds <- na.exclude(bootpreds)
+  
+  #computing mean prediction and 80% CI
+  boot.meanCI <- t(sapply(bootpreds, function(x) {
+    c(M = mean(x), quantile(x, c(0.10, 0.90)))
+  }))
+  
+  Predictions2018Timeline <- rbind(Predictions2018Timeline, data.frame(Year=yr, date=Timeline$Date[t], Name=TestData$Name, Prob=boot.meanCI[,1], LL=boot.meanCI[,2], UL=boot.meanCI[,3]))
+}
+
+#rename 3 billboards
+levels(Predictions2018$Name) <- c(levels(Predictions2018$Name), "Three Billboards") 
+Predictions2018$Name[9] <- "Three Billboards"
+
+
+
+
 
